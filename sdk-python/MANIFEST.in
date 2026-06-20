@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+recursive-include orchestrator py.typed
+
+# Exclude test and example files from distributions
+exclude tests/
+exclude examples/
+recursive-exclude . __pycache__
+recursive-exclude . *.pyc
+recursive-exclude . .pytest_cache

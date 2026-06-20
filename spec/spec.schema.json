@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://org/orchestrator/spec.schema.json",
+  "title": "Workflow Spec",
+  "description": "Language-neutral workflow template. Single source of truth for all SDKs and the engine.",
+  "type": "object",
+  "required": ["workflow"],
+  "properties": {
+    "workflow": {
+      "type": "object",
+      "required": ["name", "tasks"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "integer", "minimum": 1, "default": 1 },
+        "concurrency": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_parallel": { "type": "integer", "minimum": 1, "default": 8 },
+            "rate_limit": { "$ref": "#/definitions/rateLimit" }
+          }
+        },
+        "providers": {
+          "type": "object",
+          "description": "Named providers with independent rate buckets (e.g. an LLM API, a data API).",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "rate_limit": { "$ref": "#/definitions/rateLimit" }
+            }
+          }
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "retry": { "$ref": "#/definitions/retry" },
+            "timeout": { "$ref": "#/definitions/duration" },
+            "on_error": { "$ref": "#/definitions/onError" }
+          }
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": { "type": "string", "enum": ["string", "number", "boolean", "object", "array"] },
+              "required": { "type": "boolean", "default": false },
+              "default": {}
+            }
+          }
+        },
+        "tasks": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/task" }
+        },
+        "output": {
+          "type": "string",
+          "description": "Template expression for the workflow's final output, e.g. ${report.output}."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "duration": {
+      "type": "string",
+      "pattern": "^[0-9]+(ms|s|m|h)$",
+      "description": "Duration like 500ms, 120s, 5m, 1h."
+    },
+    "rateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requests", "per"],
+      "properties": {
+        "requests": { "type": "integer", "minimum": 1 },
+        "per": { "$ref": "#/definitions/duration" },
+        "tokens": { "type": "integer", "minimum": 1, "description": "Optional token budget (LLM TPM)." },
+        "per_tokens": { "$ref": "#/definitions/duration" }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max": { "type": "integer", "minimum": 0, "default": 0 },
+        "backoff": { "type": "string", "enum": ["none", "fixed", "exponential"], "default": "exponential" },
+        "base": { "$ref": "#/definitions/duration" },
+        "jitter": { "type": "boolean", "default": true }
+      }
+    },
+    "onError": { "type": "string", "enum": ["fail_fast", "continue"], "default": "fail_fast" },
+    "task": {
+      "type": "object",
+      "required": ["id", "skill"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+        "skill": { "type": "string", "description": "Name of a registered skill handler." },
+        "provider": { "type": "string", "description": "Optional named provider whose rate bucket gates this task." },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task ids this task waits for. Empty/absent => runs as soon as scheduled (parallel)."
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Inputs to the skill. Values may be template expressions: ${input.x}, ${taskId.output}, ${taskId.output.field}."
+        },
+        "retry": { "$ref": "#/definitions/retry" },
+        "timeout": { "$ref": "#/definitions/duration" },
+        "on_error": { "$ref": "#/definitions/onError" },
+        "idempotent": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}

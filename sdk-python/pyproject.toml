@@ -1,0 +1,114 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-workflow-orchestrator"
+version = "1.0.0"
+description = "Orchestrate multi-agent workflows with autonomous reasoning, parallelism, rate limiting, and LLM integration"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache License 2.0"}
+authors = [
+    {name = "Orchestrator Team", email = "info@orchestrator.dev"}
+]
+keywords = [
+    "orchestration",
+    "workflow",
+    "multi-agent",
+    "agent",
+    "concurrency",
+    "rate-limiting",
+    "llm",
+    "mcp",
+    "asyncio"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+# Core dependencies — Python SDK runs workflows in-process or can drive the Go engine
+dependencies = [
+    # No required dependencies. The SDK works standalone (Python engine) or can spawn Go engine.
+]
+
+[project.optional-dependencies]
+# Individual LLM providers (pick what you need)
+llm-anthropic = ["anthropic>=0.7.0"]
+llm-openai = ["openai>=1.0.0"]
+llm-gemini = ["google-generativeai>=0.3.0"]
+llm-xai = ["openai>=1.0.0"]  # xAI uses OpenAI-compatible API
+llm-huggingface = ["transformers>=4.30.0", "torch>=2.0.0"]
+llm-azure = ["openai>=1.0.0"]  # Azure uses OpenAI SDK
+
+# All LLM providers together
+llm = [
+    "anthropic>=0.7.0",
+    "openai>=1.0.0",
+    "google-generativeai>=0.3.0",
+    "transformers>=4.30.0",
+    "torch>=2.0.0",
+]
+
+engine = [
+    # For driving the external Go-based orchestrator engine (subprocess mode).
+    # The Go engine binary must be available in PATH or specified explicitly.
+]
+dev = [
+    # Development and testing tools
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "isort>=5.12",
+    "mypy>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/org/orchestrator"
+Documentation = "https://github.com/org/orchestrator/blob/main/QUICKSTART.md"
+Repository = "https://github.com/org/orchestrator"
+Issues = "https://github.com/org/orchestrator/issues"
+
+[tool.setuptools]
+packages = ["orchestrator"]
+package-dir = {"" = "."}
+
+[tool.setuptools.package-data]
+orchestrator = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

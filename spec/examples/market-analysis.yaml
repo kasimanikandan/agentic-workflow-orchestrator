@@ -1,0 +1,47 @@
+workflow:
+  name: market-analysis
+  version: 1
+
+  concurrency:
+    max_parallel: 8
+    rate_limit: { requests: 60, per: 1m }
+
+  providers:
+    anthropic:
+      rate_limit: { requests: 50, per: 1m, tokens: 100000, per_tokens: 1m }
+    market_api:
+      rate_limit: { requests: 20, per: 1s }
+
+  defaults:
+    retry: { max: 3, backoff: exponential, base: 500ms, jitter: true }
+    timeout: 120s
+    on_error: fail_fast
+
+  inputs:
+    ticker: { type: string, required: true }
+
+  tasks:
+    - id: fetch_prices
+      skill: market.fetch
+      provider: market_api
+      inputs: { ticker: "${input.ticker}" }
+
+    - id: fetch_news
+      skill: news.fetch                 # no depends_on -> PARALLEL with fetch_prices
+      provider: market_api
+      inputs: { ticker: "${input.ticker}" }
+
+    - id: sentiment
+      skill: llm.classify               # LLM-backed skill
+      provider: anthropic
+      depends_on: [fetch_news]
+      inputs: { text: "${fetch_news.output}" }
+
+    - id: report
+      skill: analysis.summarize
+      depends_on: [fetch_prices, sentiment]   # join -> waits for BOTH
+      inputs:
+        prices: "${fetch_prices.output}"
+        sentiment: "${sentiment.output}"
+
+  output: "${report.output}"

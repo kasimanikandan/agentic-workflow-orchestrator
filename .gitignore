@@ -1,0 +1,34 @@
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+*.pyc
+__pycache__/
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.env
+.env.local
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Dependencies
+/site-packages/
+
