@@ -9,13 +9,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="agentic-workflow-orchestrator",
-    version="1.1.0",
+    version="1.1.1",
     author="Manikandan Kasi",
     author_email="nxtgenai@gmail.com",
     description="Orchestrate multi-agent workflows with autonomous reasoning, parallelism, rate limiting, and LLM integration",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/org/orchestrator",
+    url="https://github.com/kasimanikandan/agentic-workflow-orchestrator",
     packages=find_packages(where="."),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -58,8 +58,8 @@ setup(
         ],
     },
     project_urls={
-        "Documentation": "https://github.com/org/orchestrator/blob/main/QUICKSTART.md",
-        "Source": "https://github.com/org/orchestrator",
-        "Tracker": "https://github.com/org/orchestrator/issues",
+        "Documentation": "https://github.com/kasimanikandan/agentic-workflow-orchestrator/blob/main/QUICKSTART.md",
+        "Source": "https://github.com/kasimanikandan/agentic-workflow-orchestrator",
+        "Tracker": "https://github.com/kasimanikandan/agentic-workflow-orchestrator/issues",
     },
 )

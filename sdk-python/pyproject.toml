@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic-workflow-orchestrator"
-version = "1.1.0"
+version = "1.1.1"
 description = "Orchestrate multi-agent workflows with autonomous reasoning, parallelism, rate limiting, and LLM integration"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -73,10 +73,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/org/orchestrator"
-Documentation = "https://github.com/org/orchestrator/blob/main/QUICKSTART.md"
-Repository = "https://github.com/org/orchestrator"
-Issues = "https://github.com/org/orchestrator/issues"
+Homepage = "https://github.com/kasimanikandan/agentic-workflow-orchestrator"
+Documentation = "https://github.com/kasimanikandan/agentic-workflow-orchestrator/blob/main/QUICKSTART.md"
+Repository = "https://github.com/kasimanikandan/agentic-workflow-orchestrator"
+Issues = "https://github.com/kasimanikandan/agentic-workflow-orchestrator/issues"
 
 [tool.setuptools]
 packages = ["orchestrator"]
