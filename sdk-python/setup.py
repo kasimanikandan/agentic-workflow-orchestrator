@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="agentic-workflow-orchestrator",
-    version="1.1.1",
+    version="1.1.2",
     author="Manikandan Kasi",
     author_email="nxtgenai@gmail.com",
     description="Orchestrate multi-agent workflows with autonomous reasoning, parallelism, rate limiting, and LLM integration",
@@ -17,6 +17,9 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/kasimanikandan/agentic-workflow-orchestrator",
     packages=find_packages(where="."),
+    package_data={
+        "orchestrator": ["bin/*", "py.typed"],
+    },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

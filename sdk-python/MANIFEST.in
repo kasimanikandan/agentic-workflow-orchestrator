@@ -3,6 +3,9 @@ include LICENSE
 include CHANGELOG.md
 recursive-include orchestrator py.typed
 
+# Include Go orchestrator engine binaries (pre-compiled for multiple platforms)
+recursive-include orchestrator/bin *
+
 # Exclude test and example files from distributions
 exclude tests/
 exclude examples/
