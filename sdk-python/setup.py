@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="agentic-workflow-orchestrator",
-    version="1.0.0",
+    version="1.1.0",
     author="Manikandan Kasi",
     author_email="nxtgenai@gmail.com",
     description="Orchestrate multi-agent workflows with autonomous reasoning, parallelism, rate limiting, and LLM integration",

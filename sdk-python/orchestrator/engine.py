@@ -1,14 +1,20 @@
 """The orchestration engine: DAG scheduler with concurrency + rate limiting.
 
-This is the Python reference implementation. It runs workflows in-process and
-defines the canonical scheduling/report semantics that the Go engine and other
-SDKs must reproduce against the shared conformance fixtures.
+Two modes:
+  1. Python (embedded): Reference implementation, runs workflows in-process.
+  2. Go (subprocess): Spawns the Go engine binary for true parallelism.
+
+Both produce identical results against the same conformance test fixtures.
 """
 from __future__ import annotations
 
 import asyncio
 import inspect
+import json
+import os
 import random
+import subprocess
+import sys
 import time
 import uuid
 from collections import defaultdict
@@ -29,15 +35,138 @@ class TaskFailed(Exception):
         self.message = message
 
 
-class Orchestrator:
-    """Embedded engine. Construct with a Registry and (optionally) an LLM provider."""
+def get_engine_path() -> str:
+    """Get path to the bundled Go orchestrator engine binary.
 
-    def __init__(self, registry: Registry, llm: Optional[LlmProvider] = None):
+    Returns the platform-specific binary path from the package.
+    """
+    import sys
+
+    # Determine platform
+    if sys.platform == "darwin":
+        if sys.maxsize > 2**32:
+            arch = "arm64" if os.uname().machine == "arm64" else "amd64"
+        else:
+            arch = "amd64"
+        name = f"orchestrator-darwin-{arch}"
+    elif sys.platform == "linux":
+        name = "orchestrator-linux-amd64"
+    elif sys.platform == "win32":
+        name = "orchestrator-windows-amd64.exe"
+    else:
+        raise RuntimeError(f"Unsupported platform: {sys.platform}")
+
+    # Try to find in package directory
+    package_dir = os.path.dirname(__file__)
+    bin_path = os.path.join(package_dir, "bin", name)
+    if os.path.exists(bin_path):
+        return bin_path
+
+    # Fallback: check PATH
+    if subprocess.run(["which", "orchestrator"], capture_output=True).returncode == 0:
+        return "orchestrator"
+
+    raise RuntimeError(
+        f"Could not find Go orchestrator engine. "
+        f"Expected at: {bin_path}. "
+        f"Reinstall: pip install --force-reinstall agentic-workflow-orchestrator"
+    )
+
+
+class Orchestrator:
+    """Workflow orchestrator with two execution modes.
+
+    The Go engine is the primary execution engine (default, recommended for all use cases).
+    The Python engine is available as a fallback for development/debugging.
+
+    Args:
+        registry: Skill registry
+        llm: Optional LLM provider for skills
+        engine: "go" (default, subprocess, production) or "python" (in-process, fallback)
+        engine_path: Path to Go binary (auto-detected if not provided)
+    """
+
+    def __init__(
+        self,
+        registry: Registry,
+        llm: Optional[LlmProvider] = None,
+        engine: str = "go",
+        engine_path: Optional[str] = None,
+    ):
         self.registry = registry
         self.llm = llm
+        self.engine = engine
+        self.engine_path = engine_path  # Lazy: only resolve when needed
 
     def run_sync(self, workflow: Workflow, inputs: Optional[Dict[str, Any]] = None) -> Report:
-        return asyncio.run(self.run(workflow, inputs))
+        """Run workflow synchronously using Go engine (default) or Python engine (fallback).
+
+        The Go engine is the primary orchestrator for all workflows.
+        The Python engine is available for development/debugging only.
+        """
+        if self.engine == "go":
+            return self._run_go_engine(workflow, inputs or {})
+        else:
+            return asyncio.run(self.run(workflow, inputs))
+
+    def _run_go_engine(self, workflow: Workflow, inputs: Dict[str, Any]) -> Report:
+        """Run workflow using Go engine subprocess."""
+        self._validate_inputs(workflow, inputs)
+
+        # Resolve Go engine path (lazy)
+        engine_path = self.engine_path or get_engine_path()
+
+        # Serialize workflow spec and inputs to JSON
+        spec_json = json.dumps(workflow.to_dict())
+        inputs_json = json.dumps(inputs)
+
+        # Prepare NDJSON message for Go engine
+        start_msg = json.dumps(
+            {
+                "type": "start_run",
+                "spec_json": spec_json,
+                "inputs_json": inputs_json,
+            }
+        )
+
+        try:
+            # Spawn Go engine subprocess
+            proc = subprocess.Popen(
+                [engine_path],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+            # Send start message
+            stdout_data, stderr_data = proc.communicate(input=start_msg + "\n", timeout=3600)
+
+            if proc.returncode != 0:
+                raise RuntimeError(f"Go engine failed: {stderr_data}")
+
+            # Parse final report from stdout (last line should be the report JSON)
+            lines = stdout_data.strip().split("\n")
+            report_line = None
+            for line in reversed(lines):
+                if line.startswith('{"type":"report"'):
+                    report_line = line
+                    break
+
+            if not report_line:
+                raise RuntimeError("Go engine did not return a valid report")
+
+            report_data = json.loads(report_line)
+            return Report.from_dict(report_data)
+
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            raise RuntimeError("Go engine execution timeout (1 hour limit)")
+        except FileNotFoundError:
+            raise RuntimeError(
+                f"Go engine binary not found at: {engine_path}\n"
+                f"Install: pip install --force-reinstall agentic-workflow-orchestrator"
+            )
 
     async def run(self, workflow: Workflow, inputs: Optional[Dict[str, Any]] = None) -> Report:
         inputs = inputs or {}

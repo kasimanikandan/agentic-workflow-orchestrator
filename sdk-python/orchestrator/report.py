@@ -87,6 +87,48 @@ class Report:
     def to_json(self, indent: int = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent, default=str)
 
+    @staticmethod
+    def from_dict(d: Dict[str, Any]) -> Report:
+        """Deserialize report from dictionary (inverse of to_dict)."""
+        tasks = []
+        for t in d.get("tasks", []):
+            llm = None
+            if "llm" in t:
+                llm = LlmUsage(**t["llm"])
+            decisions = []
+            for dec in t.get("decisions", []):
+                decisions.append(Decision(**dec))
+            tasks.append(
+                TaskSpan(
+                    id=t["id"],
+                    status=t["status"],
+                    duration_ms=t.get("duration_ms", 0),
+                    attempts=t.get("attempts", 0),
+                    llm=llm,
+                    decisions=decisions,
+                    error=t.get("error"),
+                )
+            )
+        totals_dict = d.get("totals", {})
+        totals = Totals(
+            llm_tokens_in=totals_dict.get("llm_tokens_in", 0),
+            llm_tokens_out=totals_dict.get("llm_tokens_out", 0),
+            tool_calls=totals_dict.get("tool_calls", 0),
+            retries=totals_dict.get("retries", 0),
+        )
+        return Report(
+            workflow=d["workflow"],
+            run_id=d["run_id"],
+            status=d["status"],
+            started_at=d["started_at"],
+            duration_ms=d["duration_ms"],
+            tasks=tasks,
+            critical_path=d.get("critical_path", []),
+            totals=totals,
+            errors=d.get("errors", []),
+            output=d.get("output"),
+        )
+
 
 def compute_critical_path(spans: Dict[str, TaskSpan], depends_on: Dict[str, List[str]]) -> List[str]:
     """Longest path by cumulative duration through succeeded tasks (the bottleneck chain)."""

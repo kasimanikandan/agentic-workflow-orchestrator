@@ -15,7 +15,7 @@ Quick start:
     report = Orchestrator(reg, llm=MockLLM()).run_sync(wf, {"ticker": "AAPL"})
     print(report.to_json())
 """
-from .engine import Orchestrator, TaskFailed
+from .engine import Orchestrator, TaskFailed, get_engine_path
 from .llm import (
     AnthropicProvider,
     AzureOpenAIProvider,
@@ -35,6 +35,7 @@ from .spec import RateLimit, Retry, SpecError, Task, Workflow, resolve_template
 __all__ = [
     "Orchestrator",
     "TaskFailed",
+    "get_engine_path",
     "Registry",
     "SkillContext",
     "Workflow",

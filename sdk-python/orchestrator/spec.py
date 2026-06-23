@@ -196,6 +196,47 @@ class Workflow:
     def task_map(self) -> Dict[str, Task]:
         return {t.id: t for t in self.tasks}
 
+    def to_dict(self) -> dict:
+        """Serialize workflow to dictionary (inverse of from_dict)."""
+        return {
+            "workflow": {
+                "name": self.name,
+                "version": self.version,
+                "concurrency": {
+                    "max_parallel": self.max_parallel,
+                    "rate_limit": (
+                        self.rate_limit.__dict__ if self.rate_limit else None
+                    ),
+                } if (self.max_parallel or self.rate_limit) else {},
+                "tasks": [
+                    {
+                        "id": t.id,
+                        "skill": t.skill,
+                        "description": t.description,
+                        "inputs": t.inputs,
+                        "outputs": t.outputs,
+                        "depends_on": t.depends_on,
+                        "provider": t.provider,
+                        "retry": t.retry.__dict__ if t.retry else None,
+                        "timeout": t.timeout,
+                        "on_error": t.on_error,
+                    }
+                    for t in self.tasks
+                ],
+                "providers": {
+                    name: {"rate_limit": p.rate_limit.__dict__ if p.rate_limit else None}
+                    for name, p in self.providers.items()
+                } if self.providers else {},
+                "defaults": {
+                    "retry": self.default_retry.__dict__ if self.default_retry else None,
+                    "timeout": self.default_timeout,
+                    "on_error": self.default_on_error,
+                } if (self.default_retry or self.default_timeout or self.default_on_error != "fail_fast") else {},
+                "inputs_schema": self.inputs_schema,
+                "output": self.output,
+            }
+        }
+
 
 def resolve_template(value: Any, scope: Dict[str, Any]) -> Any:
     """Resolve ${...} references against a scope dict.
